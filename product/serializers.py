@@ -1,10 +1,14 @@
 from rest_framework import serializers
 from decimal import Decimal
-from product.models import Category,Product,Review
+from product.models import Category,Product,Review,ProductIamge
 #rest_framework.org -> api guide -> serializers -> serializer fields
 # from django.conf import settings #user model does not work like that on serializer
 from django.contrib.auth import get_user_model
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductIamge
+        fields=['id','image']
 
 class SimpleUserSerializer(serializers.ModelSerializer):
     name=serializers.SerializerMethodField(method_name='get_current_user_name')
@@ -59,9 +63,10 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    images=ProductImageSerializer(many=True,read_only=True)
     class Meta:
         model=Product
-        fields=['id','name','description','price','stock','category','price_with_tax']
+        fields=['id','name','description','price','stock','category','images','price_with_tax']
 
     # category=serializers.HyperlinkedRelatedField(queryset=Category.objects.all(),view_name='view-specific-category')
     price_with_tax=serializers.SerializerMethodField(method_name='calculate_tax')
@@ -103,3 +108,4 @@ class ReviewSerializer(serializers.ModelSerializer):
         product_id=self.context['product_id'] #sent by get_context_data() from view
         review=Review.objects.create(product_id=product_id,**validated_data)
         return review
+

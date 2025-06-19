@@ -4,8 +4,8 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from product.models import Product,Category,Review
-from product.serializers import ProductSerializer,CategorySerializer,ReviewSerializer
+from product.models import Product,Category,Review,ProductIamge
+from product.serializers import ProductSerializer,CategorySerializer,ReviewSerializer,ProductImageSerializer
 from django.db.models import Count
 from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
@@ -17,6 +17,8 @@ from product.paginations import DefaultPagination
 from rest_framework.permissions import IsAdminUser,AllowAny,DjangoModelPermissions,DjangoModelPermissionsOrAnonReadOnly
 from api.permissions import IsAdminOrReadOnly,FullDjangoModelPermission
 from product.permissions import IsReviewAuthorOrReadOnly
+from drf_yasg.utils import swagger_auto_schema
+
 # Create your views here.
 
 # id and pk niye confusion lagse. 
@@ -46,6 +48,7 @@ from product.permissions import IsReviewAuthorOrReadOnly
 
 
 #CBV of view_products
+"""
 class ViewProducts(APIView):
     def get(self,request):
         products=Product.objects.select_related('category').all()
@@ -58,7 +61,10 @@ class ViewProducts(APIView):
         serializer.save()
         return Response(serializer.data,status=status.HTTP_201_CREATED)      
 
+"""
+
 #using generic APIView for product list [view_products]
+
 class ProductView(ListCreateAPIView):
     queryset=Product.objects.all()
     serializer_class=ProductSerializer
@@ -74,6 +80,11 @@ class ProductView(ListCreateAPIView):
     #     return {'request':self.request}
 
 class ProductViewSet(ModelViewSet):
+    """Product add, delete, update, read operations.
+    - Any user can see products
+    - Only authenticated users can select product to cart
+    - Only admin can add , update ,delete a product from the website. 
+    """
     queryset=Product.objects.all()
     serializer_class=ProductSerializer
     filter_backends=[DjangoFilterBackend,SearchFilter,OrderingFilter]
@@ -108,7 +119,57 @@ class ProductViewSet(ModelViewSet):
             queryset=Product.objects.filter(category_id=category_id)
         return queryset
     """
+    
+    def list(self, request, *args, **kwargs):
+        """-Any user can see the list of products"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Create a single product',
+	operation_description='This feature allows a product object to be created only by Admin',
+	request_body=ProductSerializer,
+	responses={
+		201:ProductSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
 
+    @swagger_auto_schema(
+	operation_summary='Get a single product',
+	operation_description='This feature allows a product object to be read by any user',
+	responses={
+		200:ProductSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Update a single product',
+	operation_description='This feature allows a product object to be updated only by Admin',
+	request_body=ProductSerializer,
+	responses={
+		200:ProductSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def update(self, request, *args, **kwargs):
+        """Update a product"""
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+	operation_summary='Delete a single product',
+	operation_description='This feature allows a product object to be deleted only by Admin',
+	request_body=ProductSerializer,
+	responses={
+		204:ProductSerializer,
+		401:'Bad Request'
+	    }
+    )
     def destroy(self, request, *args, **kwargs):
         product=self.get_object()
         if product.stock>20:
@@ -144,6 +205,7 @@ class ProductViewSet(ModelViewSet):
 #         """
 
 #CBV of view_specific_product
+"""
 class ViewSpecificProduct(APIView):
     def get(self,request,pk):
         product=get_object_or_404(Product,pk=pk)
@@ -162,7 +224,10 @@ class ViewSpecificProduct(APIView):
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+"""
+
 # generic view for viewSpecificProduct
+
 class ProductDetails(RetrieveUpdateDestroyAPIView):
     queryset=Product.objects.all() #no single object query here. must be entire query set. 
     serializer_class=ProductSerializer
@@ -207,9 +272,70 @@ class CategoryView(ListCreateAPIView):
 
 
 class CategoryViewSet(ModelViewSet):
+    """Category read, create, update and delete operations
+    - Normal user can only read and see the categories. 
+    - Admin can create , update and delete categories"""
     permission_classes=[IsAdminOrReadOnly]
     queryset=Category.objects.annotate(product_count=Count('products')).all()
     serializer_class=CategorySerializer
+
+    @swagger_auto_schema(
+	operation_summary='Get the list of categories',
+	operation_description='This feature allows the cateogry list to be read by any user',
+	responses={
+		200:CategorySerializer,
+		401:'Bad Request'
+	    }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Get a single category with its details',
+	operation_description='This feature allows a category details to be read by any user',
+	responses={
+		200:CategorySerializer,
+		401:'Bad Request'
+	    }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Create a single Category',
+	operation_description='This feature allows a Category object to be created only by Admin',
+	request_body=CategorySerializer,
+	responses={
+		201:CategorySerializer,
+		401:'Bad Request'
+	    }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Update a single Category',
+	operation_description='This feature allows a Category object to be updated only by Admin',
+	request_body=CategorySerializer,
+	responses={
+		200:CategorySerializer,
+		401:'Bad Request'
+	    }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Delete a single product',
+	operation_description='This feature allows a product object to be deleted only by Admin',
+	request_body=ProductSerializer,
+	responses={
+		204:ProductSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 # @api_view()
 # def view_specific_category(request,pk):
@@ -217,7 +343,9 @@ class CategoryViewSet(ModelViewSet):
 #     serializer=CategorySerializer(category)
 #     return Response(serializer.data)
 
+"""Class based APIView of view_specific_cateogry
 class ViewSpecificCategory(APIView):
+
     def get(self,request,pk):
         # category=get_object_or_404(Category,pk=pk)
         # we can place queryset instead of direct model name inside get_object_or_404
@@ -245,13 +373,23 @@ class ViewSpecificCategory(APIView):
         )
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+"""
 
 # using generic view for view_specific_category
+"""
 class CategoryDetails(RetrieveUpdateDestroyAPIView):
+
     queryset=Category.objects.annotate(product_count=Count('products')).all()
     serializer_class=CategorySerializer
+"""
 
 class ReviewViewSet(ModelViewSet):
+    """Review read, create, update and delete operations
+    - Normal user can only read and see the reviews
+    - Authenticate user can create a review.
+    - Authenticated user can also update and delete his own reviews 
+    - Admin can create , update and delete any reviews"""
+     
     # queryset=Review.objects.all()
     serializer_class=ReviewSerializer
     permission_classes=[IsReviewAuthorOrReadOnly]
@@ -263,10 +401,82 @@ class ReviewViewSet(ModelViewSet):
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        return Review.objects.filter(product_id=self.kwargs['product_pk'])
+        if getattr(self,'swagger_fake_view',False):
+            return Review.objects.none()
+
+        return Review.objects.filter(product_id=self.kwargs.get('product_pk'))
     
     # to send context data to serializer
     def get_serializer_context(self):
-        return {'product_id':self.kwargs['product_pk']} #in ViewSet,instance data is stored in self.kwargs dictionary. 
+        return {'product_id':self.kwargs.get('product_pk')} #in ViewSet,instance data is stored in self.kwargs dictionary. 
         # warning=> kwargs key product_id kaj kore na. 
+    
+    @swagger_auto_schema(
+	operation_summary='Get the list of reviews of a product',
+	operation_description='This feature allows all reviews of a product to be read by any user',
+	responses={
+		200:ReviewSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Get a single review',
+	operation_description='This feature allows a review object to be read by any user',
+	responses={
+		200:ReviewSerializer,
+		401:'Bad Request'
+	    }
+    )    
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
 
+    @swagger_auto_schema(
+	operation_summary='Create a single Review',
+	operation_description='This feature allows a product object to be created by an authenticated user',
+	request_body=ReviewSerializer,
+	responses={
+		201:ReviewSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+
+    @swagger_auto_schema(
+	operation_summary='Update a single review',
+	operation_description='This feature allows a review object to be updated only by Admin and the review author',
+	request_body=ReviewSerializer,
+	responses={
+		200:ReviewSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+	operation_summary='Delete a single review',
+	operation_description='This feature allows a review object to be deleted only by Admin and the review author',
+	request_body=ReviewSerializer,
+	responses={
+		204:ReviewSerializer,
+		401:'Bad Request'
+	    }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+class ProductImageViewSet(ModelViewSet):
+    serializer_class=ProductImageSerializer
+    permission_classes=[IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        return ProductIamge.objects.filter(product_id=self.kwargs.get('product_pk'))
+    
+    def perform_create(self, serializer):
+        serializer.save(product_id=self.kwargs.get('product_pk'))
