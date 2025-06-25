@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework.decorators import action
 from order.services import OrderService
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 
 # Create your views here.
 
@@ -96,6 +97,12 @@ class CartItemViewSet(ModelViewSet):
 	    }
     )
     def create(self, request, *args, **kwargs):
+        existing_cart=Cart.objects.filter(user=request.user).first()
+
+        if existing_cart:
+            serializer=self.get_serializer(existing_cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
         return super().create(request, *args, **kwargs)
     
     @swagger_auto_schema(

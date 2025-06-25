@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework', #best practice to keep it here, just after built-in apps
     'djoser',
     'django_filters',
+    "corsheaders",
     'users',
     'api',
     'order',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -86,6 +88,9 @@ INTERNAL_IPS = [
     # ...
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173", 
+]
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
