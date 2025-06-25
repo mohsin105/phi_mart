@@ -32,6 +32,15 @@ class CartViewSet(CreateModelMixin,RetrieveModelMixin,DestroyModelMixin,GenericV
         
         return Cart.objects.prefetch_related('items__product').filter(user=self.request.user)
     
+    def create(self, request, *args, **kwargs):
+        existing_cart=Cart.objects.filter(user=request.user).first()
+
+        if existing_cart:
+            serializer=self.get_serializer(existing_cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return super().create(request, *args, **kwargs)
+    
     @swagger_auto_schema(
 	operation_summary='Get a single cart with its details',
 	operation_description='This feature allows a cart details to be read by only by its owner',
@@ -97,12 +106,6 @@ class CartItemViewSet(ModelViewSet):
 	    }
     )
     def create(self, request, *args, **kwargs):
-        existing_cart=Cart.objects.filter(user=request.user).first()
-
-        if existing_cart:
-            serializer=self.get_serializer(existing_cart)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        
         return super().create(request, *args, **kwargs)
     
     @swagger_auto_schema(
